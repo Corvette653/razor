@@ -1,0 +1,101 @@
+﻿@page
+@model razor.Pages.add_tournamentModel
+@{
+    ViewData["Title"] = "Add new tournament";
+}
+@using razor.Models
+@section Styles {
+    <style>
+        .row label {
+            width: 300px;
+            text-align: left;
+        }
+        .row input, .row select {
+            width: auto;
+        }
+        .row input, .row label {
+            line-height: 24px;
+            height: 24px;
+        }
+        .row button {
+            width: 300px;
+            margin-left: calc(100% - 320px);
+        }
+        div.line {
+            margin: 10px 0px;
+            border-bottom: 1px solid grey;
+        }
+        .green {
+            background-color: green;
+        }
+    </style>
+}
+    <div class="text-center">
+        <form method="post" class="card p-3">
+        <div>
+            <div asp-validation-summary="All"></div>
+        </div>
+        <div class="form-group mb-0 align-middle">
+            <div class="row">
+                <label asp-for="NewTournament.Name">tournament name</label>
+                <input asp-for="NewTournament.Name" class="mr-5" />
+            </div>
+            <div class="line"></div>
+            <div class="row">
+                <label asp-for="NewTournament.GroupStage">tournament with group stage</label>
+                <input asp-for="NewTournament.GroupStage" />
+            </div>
+            <div class="row">
+                <label asp-for="NewTournament.NumberOfPlayersInGroup">group size</label>
+                <input asp-for="NewTournament.NumberOfPlayersInGroup" disabled />
+            </div>
+            <div class="row">
+                <label asp-for="NewTournament.NumberOfGroupWinners">number of competitors who progress from the group stage</label>
+                <input asp-for="NewTournament.NumberOfGroupWinners" disabled />
+            </div>
+            <div class="line"></div>
+            <div class="row">
+                <label asp-for="NewCompetitorsIds">competitors</label>
+                <select asp-for="NewCompetitorsIds">
+                    @foreach (Competitor competitor in Model.Competitors)
+                    {
+                        <option value="@competitor.Id">@competitor.FullName</option>
+                    }
+                </select>
+
+            </div>
+            <div class="row">
+                <button class="btn btn-primary">Create tournament</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        const groupStageCheckbox = document.getElementById("NewTournament_GroupStage");
+        const numberOfPlayersInGroupInput = document.getElementById("NewTournament_NumberOfPlayersInGroup");
+        const numberOfGroupWinnersInput = document.getElementById("NewTournament_NumberOfGroupWinners");
+
+        groupStageCheckbox.addEventListener('change', GroupsChanged);
+
+        function GroupsChanged(event) {
+            if (groupStageCheckbox.checked) {
+                GroupsEnabled();
+            }
+            else {
+                GroupsDisabled();
+            }
+        }
+
+        function GroupsEnabled() {
+            numberOfPlayersInGroupInput.removeAttribute('disabled');
+            numberOfGroupWinnersInput.removeAttribute('disabled');
+        }
+
+        function GroupsDisabled() {
+            numberOfPlayersInGroupInput.setAttribute('disabled', '');
+            numberOfGroupWinnersInput.setAttribute('disabled', '');
+        }
+    </script>
+}

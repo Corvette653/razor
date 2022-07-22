@@ -1,0 +1,24 @@
+﻿@page
+@model IndexModel
+@using razor.Models
+@{
+    ViewData["Title"] = "List of tournaments";
+}
+
+<div class="text-center">
+    <h1>Tournaments list</h1>
+    <ul style="padding: 0px; list-style: none;">
+        @foreach (Tournament tournament in Model.Tournaments)
+        {
+            <li><a asp-page="/Tournament" asp-route-tournament_name="@tournament.Name">@tournament.Name</a></li>
+        }
+        @if (Model.Tournaments.Count() == 0)
+        {
+            <li>No tournaments to display</li>
+        }
+    </ul>
+    @if (Model.CurrUser != null && Model.CurrUser.Role != Models.UserRole.User)
+    {
+        <a class="nav-link text-dark" asp-area="" asp-page="/add_tournament" style="background-color: green; color: white !important; display: inline;">Add tournament</a>
+    }
+</div>

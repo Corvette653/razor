@@ -1,0 +1,274 @@
+﻿@page
+@model razor.Pages.TournamentModel
+@using razor.Models
+@{
+    ViewData["Title"] = "List of tournaments";
+}
+@section Styles {
+    <style>
+        .green {
+            background-color: green;
+            color: white;
+            border-radius: 0px;
+        }
+
+            .green:hover {
+                color: white;
+            }
+
+        .winner {
+            color: green;
+        }
+
+        .loser {
+            color: red;
+        }
+
+        table {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+            table td, table th {
+                border: 1px solid black;
+                padding: 5px;
+            }
+
+        ul {
+            list-style: none;
+        }
+
+        form {
+            display: inline-block;
+        }
+
+        h3 {
+            margin-top: 20px;
+        }
+
+        .set_winner_btn {
+            text-decoration: underline;
+            color: darkblue;
+            padding: 0px;
+            border: none;
+        }
+
+        .ladder_match {
+            padding: 10px;
+        }
+
+        .ladder_competitor {
+            border: 1px solid black;
+            height: 26px;
+        }
+    </style>
+}
+    <div class="text-center">
+        <h1>@Model.Tournament.Name</h1>
+        <h2><a id="competitors_head" href="javascript:ShowCompetitors();">Competitors</a></h2>
+        <ul class="d-none" id="competitors_list">
+            @foreach (Competitor competitor in Model.Tournament.Competitors)
+        {
+            <li>@competitor.FullName</li> <!--competitors list-->
+        }
+    </ul>
+    @if (Model.CurrUser != null && Model.CurrUser.Role != UserRole.User && Model.Tournament.GroupStage == true && Model.Tournament.State == TournamentState.Scheduled)
+    {
+        <form method="post" asp-page-handler="StartGroups" asp-route-tournament_name="@Model.Tournament.Name">
+            <button class="btn green">Create groups</button> <!--create groups button-->
+        </form>
+    }
+    @if (Model.Tournament.State != TournamentState.Scheduled && Model.Tournament.GroupStage == true)
+    {
+        <h2><a id="groups_head" href="javascript:ShowGroups();">Groups</a></h2> <!--groups list-->
+        <ul class="d-none" id="groups_list">
+            @foreach (Group group in Model.Tournament.Groups)
+            {
+                <li>
+                    <h3>Group @group.Name</h3>
+                    <div style="display: inline-block; width: 40%; float: right;">
+                        <h4>Table</h4>
+                        <table>
+                            <tr>
+                                <th scope="col">Competitor</th>
+                                <th scope="col">Points</th>
+                            </tr>
+                            @foreach (CompPoint competitor in group.Competitors)
+                            {
+                                <tr>
+                                    <td>@competitor.Competitor.FullName</td>
+                                    <td>@competitor.Points</td>
+                                </tr>
+                            }
+                        </table>
+                    </div>
+                    <div style="display: inline-block; width: 55%;float:left;">
+                        <h4>Matches</h4>
+                        <ul class="matches">
+                            @foreach (Match match in group.Matches)
+                            {
+                                <li class="match">
+                                    @if (match.Played == false && Model.CurrUser != null && Model.CurrUser.Role != UserRole.User)
+                                    {
+                                        <form method="post" asp-page-handler="SetWinner" asp-route-match_id="@match.Id" asp-route-match_winner_id="@match.FirstCompetitor.Id" asp-route-tournament_name="@Model.Tournament.Name">
+                                            <button class="btn set_winner_btn">Mark as winner</button>
+                                        </form>
+                                    }
+                                    @if (match.Played && match.Winner)
+                                    {
+                                        <span class="winner competitor">@match.FirstCompetitor.FullName</span>
+                                    }
+                                    else if (match.Played && match.Winner == false)
+                                    {
+                                        <span class="loser competitor">@match.FirstCompetitor.FullName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="competitor">@match.FirstCompetitor.FullName</span>
+                                    }
+                                    <span>-</span>
+                                    @if (match.Played && match.Winner)
+                                    {
+                                        <span class="loser competitor">@match.SecondCompetitor.FullName</span>
+                                    }
+                                    else if (match.Played && match.Winner == false)
+                                    {
+                                        <span class="winner competitor">@match.SecondCompetitor.FullName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="competitor">@match.SecondCompetitor.FullName</span>
+                                    }
+                                    @if (match.Played == false && Model.CurrUser != null && Model.CurrUser.Role != UserRole.User)
+                                    {
+                                        <form method="post" asp-page-handler="SetWinner" asp-route-match_id="@match.Id" asp-route-match_winner_id="@match.SecondCompetitor.Id" asp-route-tournament_name="@Model.Tournament.Name">
+                                            <button class="btn set_winner_btn">Mark as winner</button>
+                                        </form>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    <div style="clear: both;"></div>
+                </li>
+            }
+        </ul>
+    }
+    @if ((Model.Tournament.State == TournamentState.GroupsFinished && Model.Tournament.GroupStage == true && Model.CurrUser != null && Model.CurrUser.Role != UserRole.User) || (Model.Tournament.State == TournamentState.Scheduled && Model.Tournament.GroupStage == false && Model.CurrUser != null && Model.CurrUser.Role != UserRole.User))
+    {
+        <form method="post" asp-page-handler="StartLadder" asp-route-tournament_name="@Model.Tournament.Name">
+            <button class="btn green">Create ladder</button> <!--create ladder button-->
+        </form>
+    }
+    @if (Model.Tournament.State == TournamentState.Ladder || Model.Tournament.State == TournamentState.Finished)
+    {
+        <h2><a id="ladder_head" href="javascript:HideLadder();">Ladder</a></h2> <!--ladder-->
+        <div id="ladder_list">
+            @foreach (LadderStage ladderStage in Model.Tournament.Ladder)
+            {
+                <div style="width: calc( 100% / @Model.Tournament.Ladder.Count); float: left;">
+                    @foreach (Match match in ladderStage.Matches)
+                    {
+                        <div class="ladder_match">
+                            <div class="ladder_competitor">
+                                @if (match.Played == false && Model.CurrUser != null && Model.CurrUser.Role != UserRole.User && ladderStage.Active)
+                                {
+                                    <form method="post" asp-page-handler="SetWinner" asp-route-match_id="@match.Id" asp-route-match_winner_id="@match.FirstCompetitor.Id" asp-route-tournament_name="@Model.Tournament.Name">
+                                        <button class="btn set_winner_btn">Mark as winner</button>
+                                    </form>
+                                }
+                                @if (match.FirstCompetitor.FullName == " ")
+                                {
+                                    <span>-</span>
+                                }
+                                else
+                                {
+                                    @if (match.Played && match.Winner)
+                                    {
+                                        <span class="winner">@match.FirstCompetitor.FullName</span>
+                                    }
+                                    else if(match.Played && match.Winner == false)
+                                    {
+                                        <span class="loser">@match.FirstCompetitor.FullName</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@match.FirstCompetitor.FullName</span>
+                                    }
+                                }
+                            </div>
+                            <div class="ladder_competitor">
+                                @if (match.Played == false && Model.CurrUser != null && Model.CurrUser.Role != UserRole.User && ladderStage.Active)
+                                {
+                                    <form method="post" asp-page-handler="SetWinner" asp-route-match_id="@match.Id" asp-route-match_winner_id="@match.SecondCompetitor.Id" asp-route-tournament_name="@Model.Tournament.Name">
+                                        <button class="btn set_winner_btn">Mark as winner</button>
+                                    </form>
+                                }
+                                @if (match.SecondCompetitor.FullName == " ")
+                                {
+                                    <span>-</span>
+                                }
+                                else
+                                {
+                                    @if (match.Played && match.Winner)
+                                    {
+                                        <span class="loser">@match.SecondCompetitor.FullName</span>
+                                    }
+                                    else if(match.Played && match.Winner == false)
+                                    {
+                                        <span class="winner">@match.SecondCompetitor.FullName</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@match.SecondCompetitor.FullName</span>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            <div style="clear: both;"></div>
+        </div>
+    }
+    @if (Model.Tournament.State == TournamentState.Finished)
+    {
+        <h2>Tournament winner</h2>
+        <h3>@Model.Tournament.Winner.FullName</h3>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        const competitors_list = document.getElementById("competitors_list");
+        const competitors_head = document.getElementById("competitors_head");
+        const groups_list = document.getElementById("groups_list");
+        const groups_head = document.getElementById("groups_head");
+        const ladder_list = document.getElementById("ladder_list");
+        const ladder_head = document.getElementById("ladder_head");
+        function ShowCompetitors() {
+            competitors_list.classList.remove("d-none");
+            competitors_head.setAttribute("href", "javascript:HideCompetitors();");
+        }
+        function HideCompetitors() {
+            competitors_list.classList.add("d-none");
+            competitors_head.setAttribute("href", "javascript:ShowCompetitors();");
+        }
+        function ShowGroups() {
+            groups_list.classList.remove("d-none");
+            groups_head.setAttribute("href", "javascript:HideGroups();");
+        }
+        function HideGroups() {
+            groups_list.classList.add("d-none");
+            groups_head.setAttribute("href", "javascript:ShowGroups();");
+        }
+        function ShowLadder() {
+            ladder_list.classList.remove("d-none");
+            ladder_head.setAttribute("href", "javascript:HideLadder();");
+        }
+        function HideLadder() {
+            ladder_list.classList.add("d-none");
+            ladder_head.setAttribute("href", "javascript:ShowLadder();");
+        }
+    </script>
+}
